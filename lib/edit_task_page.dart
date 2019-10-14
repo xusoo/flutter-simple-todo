@@ -27,6 +27,11 @@ class _EditTaskPageState extends State<EditTaskPage> {
     _descriptionController = new TextEditingController(text: widget.task?.description);
   }
 
+  void _deleteTask() {
+    Provider.of<TasksModel>(context, listen: false).deleteTask(widget.task);
+    Navigator.pop(context);
+  }
+
   void _saveTask() {
     if (_formKey.currentState.validate()) {
       String description = _descriptionController.text;
@@ -50,6 +55,14 @@ class _EditTaskPageState extends State<EditTaskPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.task != null ? 'Edit task' : 'Add task'),
+        actions: <Widget>[
+          if (widget.task != null)
+            IconButton(
+              icon: Icon(Icons.delete),
+              tooltip: 'Delete',
+              onPressed: _deleteTask,
+            )
+        ],
       ),
       body: Form(
         key: _formKey,
