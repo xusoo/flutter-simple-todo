@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:simple_todo/due_date_selector.dart';
 import 'package:simple_todo/model/task.dart';
 import 'package:simple_todo/model/tasks_model.dart';
 
@@ -11,6 +12,7 @@ class EditTaskPage extends StatefulWidget {
 
 class _EditTaskPageState extends State<EditTaskPage> {
   final _formKey = GlobalKey<FormState>();
+  final _dateSelectorKey = GlobalKey<DateSelectorState>();
 
   TextEditingController _descriptionController;
 
@@ -24,9 +26,10 @@ class _EditTaskPageState extends State<EditTaskPage> {
   void _saveTask() {
     if (_formKey.currentState.validate()) {
       String description = _descriptionController.text;
+      DateTime dueDate = _dateSelectorKey.currentState.selectedDate;
 
       var model = Provider.of<TasksModel>(context, listen: false);
-      model.addTask(new Task(description: description));
+      model.addTask(new Task(description: description, dueDate: dueDate));
 
       Navigator.pop(context);
     }
@@ -52,6 +55,10 @@ class _EditTaskPageState extends State<EditTaskPage> {
                   labelText: 'Description',
                 ),
                 validator: (value) => value.isEmpty ? 'You need a title' : null,
+              ),
+              DateSelector(
+                key: _dateSelectorKey,
+                title: 'Choose a due date',
               )
             ],
           ),

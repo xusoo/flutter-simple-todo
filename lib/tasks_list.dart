@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:simple_todo/model/tasks_model.dart';
 
 import 'model/task.dart';
+import 'utils/date_utils.dart';
 
 class TasksList extends StatelessWidget {
   @override
@@ -44,6 +45,15 @@ class TasksList extends StatelessWidget {
               ),
             ],
           ),
+          trailing: !task.done && task.dueDate != null
+              ? Padding(
+                  padding: const EdgeInsets.only(left: 8.0),
+                  child: Text(
+                    DateUtils.friendlyFormatDate(task.dueDate),
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                )
+              : null,
         );
       },
     );
