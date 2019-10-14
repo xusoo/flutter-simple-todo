@@ -13,6 +13,12 @@ class TasksModel with ChangeNotifier {
 
   get tasks => UnmodifiableListView(_tasks);
 
+  void addTask(Task task) {
+    task.id = _tasks.length + 1;
+    _tasks.add(task);
+    notifyListeners();
+  }
+
   void updateTask(Task task) {
     assert(task.id != null);
     notifyListeners();
