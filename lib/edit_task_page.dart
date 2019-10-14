@@ -6,6 +6,10 @@ import 'package:simple_todo/model/task.dart';
 import 'package:simple_todo/model/tasks_model.dart';
 
 class EditTaskPage extends StatefulWidget {
+  EditTaskPage({Key key, this.task}) : super(key: key);
+
+  final Task task;
+
   @override
   _EditTaskPageState createState() => _EditTaskPageState();
 }
@@ -20,7 +24,7 @@ class _EditTaskPageState extends State<EditTaskPage> {
   void initState() {
     super.initState();
 
-    _descriptionController = new TextEditingController();
+    _descriptionController = new TextEditingController(text: widget.task?.description);
   }
 
   void _saveTask() {
@@ -29,7 +33,13 @@ class _EditTaskPageState extends State<EditTaskPage> {
       DateTime dueDate = _dateSelectorKey.currentState.selectedDate;
 
       var model = Provider.of<TasksModel>(context, listen: false);
-      model.addTask(new Task(description: description, dueDate: dueDate));
+      if (widget.task != null) {
+        widget.task.description = description;
+        widget.task.dueDate = dueDate;
+        model.updateTask(widget.task);
+      } else {
+        model.addTask(new Task(description: description, dueDate: dueDate));
+      }
 
       Navigator.pop(context);
     }
@@ -39,7 +49,7 @@ class _EditTaskPageState extends State<EditTaskPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Add task'),
+        title: Text(widget.task != null ? 'Edit task' : 'Add task'),
       ),
       body: Form(
         key: _formKey,
@@ -59,6 +69,7 @@ class _EditTaskPageState extends State<EditTaskPage> {
               DateSelector(
                 key: _dateSelectorKey,
                 title: 'Choose a due date',
+                initialDate: widget.task?.dueDate,
               )
             ],
           ),

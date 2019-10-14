@@ -2,12 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
+import 'package:simple_todo/edit_task_page.dart';
 import 'package:simple_todo/model/tasks_model.dart';
 
 import 'model/task.dart';
 import 'utils/date_utils.dart';
 
 class TasksList extends StatelessWidget {
+  void _addNewTask(context) {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => EditTaskPage()));
+  }
+
+  void _editTask(context, task) {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => EditTaskPage(task: task)));
+  }
+
   @override
   Widget build(BuildContext context) {
     initializeDateFormatting(Localizations.localeOf(context).toLanguageTag());
@@ -21,6 +30,7 @@ class TasksList extends StatelessWidget {
         Task task = model.tasks[i];
 
         return ListTile(
+          onTap: () => _editTask(context, task),
           contentPadding: EdgeInsets.only(left: 16.0, right: 16.0),
           leading: Checkbox(
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
