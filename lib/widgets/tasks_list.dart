@@ -67,8 +67,7 @@ class TasksListState extends State<TasksList> {
   }
 
   void _updateTaskDate(TasksModel model, Task task, DateTime date) {
-    task.dueDate = date;
-    model.updateTask(task);
+    model.updateTaskDueDate(task, date);
     _collapseRowWidget();
   }
 

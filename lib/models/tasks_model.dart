@@ -1,6 +1,7 @@
 import 'dart:collection';
 
 import 'package:flutter/widgets.dart';
+import 'package:simple_todo/utils/date_utils.dart';
 
 import 'task.dart';
 
@@ -18,7 +19,18 @@ class TasksModel with ChangeNotifier {
     notifyListeners();
   }
 
-  void updateTask(Task task) {
+  void updateTaskDescription(Task task, String description) {
+    task.description = description;
+    notifyListeners();
+  }
+
+  void markTaskAsDone(Task task, bool done) {
+    task.done = done;
+    notifyListeners();
+  }
+
+  void updateTaskDueDate(Task task, DateTime date) {
+    task.dueDate = DateUtils.truncate(date);
     notifyListeners();
   }
 

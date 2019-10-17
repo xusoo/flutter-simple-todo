@@ -50,14 +50,12 @@ class _TaskListTileState extends State<TaskListTile> {
     if (_controller.text.isEmpty) {
       model.deleteTask(widget.task);
     } else if (widget.task.description != _controller.text) {
-      widget.task.description = _controller.text;
-      model.updateTask(widget.task);
+      model.updateTaskDescription(widget.task, _controller.text);
     }
   }
 
   void _onCheckboxChange(TasksModel model, bool value) {
-    widget.task.done = value;
-    model.updateTask(widget.task);
+    model.markTaskAsDone(widget.task, value);
     _focusNode.unfocus();
   }
 
