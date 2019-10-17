@@ -11,7 +11,7 @@ class TasksModel with ChangeNotifier {
     new Task(description: 'Pick up laundry', dueDate: DateTime.now().add(Duration(days: 1))),
   ];
 
-  get tasks => UnmodifiableListView(_tasks);
+  List<Task> get tasks => UnmodifiableListView(_tasks);
 
   void addTask(Task task) {
     _tasks.add(task);

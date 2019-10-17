@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:simple_todo/edit_task_page.dart';
-import 'package:simple_todo/model/tasks_model.dart';
-import 'package:simple_todo/tasks_list.dart';
+import 'package:simple_todo/models/tasks_model.dart';
+import 'package:simple_todo/widgets/tasks_list.dart';
 
 void main() => runApp(MyApp());
 
@@ -29,21 +28,13 @@ class MyApp extends StatelessWidget {
 }
 
 class HomePage extends StatelessWidget {
-  _addNewTask(context) {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => EditTaskPage()));
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('Tasks'),
-        ),
-        body: TasksList(),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => _addNewTask(context),
-          tooltip: 'Create new task',
-          child: const Icon(Icons.add),
-        ));
+      appBar: AppBar(
+        title: const Text('Tasks'),
+      ),
+      body: TasksList(),
+    );
   }
 }

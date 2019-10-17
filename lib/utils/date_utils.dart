@@ -6,18 +6,22 @@ class DateUtils {
   static String formatDate(DateTime date, String pattern) => DateFormat(pattern, Intl.getCurrentLocale()).format(date);
 
   static String friendlyFormatDate(DateTime date) {
-    if (isTomorrow(date)) {
+    if (isToday(date)) {
+      return 'Today';
+    } else if (isTomorrow(date)) {
       return 'Tomorrow';
     } else if (isNextWeek(date)) {
       return 'Next week';
     } else {
-      var days = daysFromNow(date);
-      if (days < 7) {
+      int days = daysFromNow(date);
+      if (days > 0 && days < 7) {
         return "In $days days";
       }
     }
     return formatDate(date, 'yMd');
   }
+
+  static bool isToday(DateTime date) => date != null && daysFromNow(date) == 0;
 
   static bool isTomorrow(DateTime date) => date != null && daysFromNow(date) == 1;
 
