@@ -84,6 +84,7 @@ class TasksListState extends State<TasksList> {
           Task task = model.tasks[index];
 
           return TaskListTile(
+            key: ObjectKey(task),
             task: task,
             onExpansionChanged: (expanded) => _onExpansionChanged(index, expanded),
             widgetExpanded: _expandedRow == index,
