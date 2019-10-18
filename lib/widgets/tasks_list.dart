@@ -64,6 +64,10 @@ class TasksListState extends State<TasksList> {
     setState(() => _expandedRow = state ? row : null);
   }
 
+  void _deleteTask(TasksModel model, Task task) {
+    model.deleteTask(task);
+  }
+
   @override
   Widget build(BuildContext context) {
     initializeDateFormatting(Localizations.localeOf(context).toLanguageTag());
@@ -103,12 +107,16 @@ class TasksListState extends State<TasksList> {
 
     Task task = model.tasks[index];
 
-    return TaskListTile(
+    return Dismissible(
       key: ObjectKey(task),
-      task: task,
-      onExpansionChanged: (expanded) => _onExpansionChanged(index, expanded),
-      widgetExpanded: _expandedRow == index,
-      onFocus: () => _onRowFocus(index),
+      onDismissed: (direction) => _deleteTask(model, task),
+      background: Container(color: Theme.of(context).canvasColor),
+      child: TaskListTile(
+        task: task,
+        onExpansionChanged: (expanded) => _onExpansionChanged(index, expanded),
+        widgetExpanded: _expandedRow == index,
+        onFocus: () => _onRowFocus(index),
+      ),
     );
   }
 
