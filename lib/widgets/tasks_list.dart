@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
-import 'package:intl/date_symbol_data_local.dart';
+import 'package:flutter_reorderable_list/flutter_reorderable_list.dart';
 import 'package:provider/provider.dart';
 import 'package:simple_todo/models/task.dart';
 import 'package:simple_todo/models/tasks_model.dart';
@@ -18,7 +18,6 @@ class TasksListState extends State<TasksList> {
   bool _autofocusNewTaskField = false;
   FocusNode _newTaskFieldFocus = FocusNode();
   TextEditingController _newTaskFieldController = new TextEditingController();
-  ScrollController _scrollController = new ScrollController();
 
   @override
   void initState() {
@@ -70,67 +69,53 @@ class TasksListState extends State<TasksList> {
 
   @override
   Widget build(BuildContext context) {
-    initializeDateFormatting(Localizations.localeOf(context).toLanguageTag());
-
     final model = Provider.of<TasksModel>(context);
 
     return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus();
-      },
-      child: CustomScrollView(
-        slivers: [
-          SliverList(
-            delegate: SliverChildListDelegate.fixed([
-              Container(
-                decoration: _listContainerDecoration(),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  controller: _scrollController,
-                  padding: EdgeInsets.zero,
-                  itemCount: model.tasks.length + 1,
-                  itemBuilder: (context, index) => _buildItem(index, model),
-                  separatorBuilder: (BuildContext context, int index) => _buildItemSeparator(),
-                ),
-              ),
-            ]),
-          ),
-        ],
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: ReorderableList(
+        child: ListView.separated(
+          itemCount: model.tasks.length + 1,
+          itemBuilder: (context, index) => index < model.tasks.length ? _buildItem(index, model) : _buildNewTaskField(model),
+          separatorBuilder: (BuildContext context, int index) => _buildItemSeparator(),
+        ),
+        onReorder: (Key draggedItem, Key newPosition) => _onReorder(draggedItem, newPosition, model),
       ),
     );
+  }
+
+  bool _onReorder(Key draggedItem, Key newPosition, TasksModel model) {
+    Task draggedTask = (draggedItem as ValueKey<Task>).value;
+    int position = model.tasks.indexOf((newPosition as ValueKey<Task>).value);
+    model.reorderTask(draggedTask, position);
+    return true;
   }
 
   Widget _buildItem(int index, TasksModel model) {
-    if (index == model.tasks.length) {
-      return _buildNewTaskRow(model);
-    }
-
     Task task = model.tasks[index];
-
-    return Dismissible(
-      key: ObjectKey(task),
-      onDismissed: (direction) => _deleteTask(model, task),
-      background: Container(color: Theme.of(context).canvasColor),
-      child: TaskListTile(
-        task: task,
-        onExpansionChanged: (expanded) => _onExpansionChanged(index, expanded),
-        widgetExpanded: _expandedRow == index,
-        onFocus: () => _onRowFocus(index),
-      ),
-    );
-  }
-
-  BoxDecoration _listContainerDecoration() {
-    return BoxDecoration(
-      boxShadow: [
-        BoxShadow(
-          blurRadius: 5,
-          color: isDarkMode() ? Colors.grey.shade900 : Colors.grey,
-          offset: Offset(0, 2),
-          spreadRadius: -2,
-        )
-      ],
-      color: isDarkMode() ? Colors.grey.shade800 : Colors.white,
+    return ReorderableItem(
+      key: ValueKey(task),
+      childBuilder: (context, ReorderableItemState state) {
+        return DelayedReorderableListener(
+          child: Opacity(
+            opacity: state == ReorderableItemState.placeholder ? 0.0 : 1.0,
+            child: Dismissible(
+              key: ValueKey(task),
+              onDismissed: (direction) => _deleteTask(model, task),
+              background: Container(color: Theme.of(context).canvasColor),
+              child: Container(
+                color: _rowColor(),
+                child: TaskListTile(
+                  task: task,
+                  onExpansionChanged: (expanded) => _onExpansionChanged(index, expanded),
+                  widgetExpanded: _expandedRow == index,
+                  onFocus: () => _onRowFocus(index),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -145,27 +130,35 @@ class TasksListState extends State<TasksList> {
 
   bool isDarkMode() => ThemeUtils.isDarkMode(context);
 
-  ListTile _buildNewTaskRow(TasksModel model) {
-    return ListTile(
-      contentPadding: const EdgeInsets.only(left: 16.0, right: 16.0),
-      leading: Padding(
-        padding: const EdgeInsets.only(left: 8.0),
-        child: GestureDetector(
-          child: Icon(Icons.add, color: Theme.of(context).accentColor),
-          onTap: _newTaskFieldFocus.requestFocus,
-        ),
+  Widget _buildNewTaskField(TasksModel model) {
+    return Container(
+      decoration: BoxDecoration(
+        boxShadow: [BoxShadow(blurRadius: 5, color: isDarkMode() ? Colors.grey.shade900 : Colors.grey, offset: Offset(0, 3), spreadRadius: -3)],
+        color: _rowColor(),
       ),
-      title: TextFormField(
-        focusNode: _newTaskFieldFocus,
-        autofocus: _autofocusNewTaskField,
-        textCapitalization: TextCapitalization.sentences,
-        decoration: InputDecoration(
-          hintText: _newTaskFieldFocus.hasFocus ? null : 'Add new task',
-          border: InputBorder.none,
-          hintStyle: TextStyle(color: Theme.of(context).accentColor),
+      child: ListTile(
+        contentPadding: const EdgeInsets.only(left: 16.0, right: 16.0),
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 8.0),
+          child: GestureDetector(
+            child: Icon(Icons.add, color: Theme.of(context).accentColor),
+            onTap: _newTaskFieldFocus.requestFocus,
+          ),
         ),
-        onFieldSubmitted: (value) => _onNewTaskFieldSubmitted(model, value),
+        title: TextFormField(
+          focusNode: _newTaskFieldFocus,
+          autofocus: _autofocusNewTaskField,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(
+            hintText: _newTaskFieldFocus.hasFocus ? null : 'Add new task',
+            border: InputBorder.none,
+            hintStyle: TextStyle(color: Theme.of(context).accentColor),
+          ),
+          onFieldSubmitted: (value) => _onNewTaskFieldSubmitted(model, value),
+        ),
       ),
     );
   }
+
+  Color _rowColor() => isDarkMode() ? Colors.grey.shade800 : Colors.white;
 }

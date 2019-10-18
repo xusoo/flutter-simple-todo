@@ -38,4 +38,10 @@ class TasksModel with ChangeNotifier {
     _tasks.remove(task);
     notifyListeners();
   }
+
+  void reorderTask(Task task, int index) {
+    _tasks.remove(task);
+    _tasks.insert(index, task);
+    notifyListeners();
+  }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:simple_todo/models/tasks_model.dart';
 import 'package:simple_todo/widgets/tasks_list.dart';
@@ -50,6 +51,8 @@ class MyApp extends StatelessWidget {
 class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    initializeDateFormatting(Localizations.localeOf(context).toLanguageTag());
+
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(80),
