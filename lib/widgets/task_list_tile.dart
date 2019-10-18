@@ -86,23 +86,27 @@ class _TaskListTileState extends State<TaskListTile> {
   Widget _buildTaskTitle(TasksModel model) {
     return Row(
       children: <Widget>[
-        Flexible(
-          child: TextFormField(
-            focusNode: _focusNode,
-            controller: _controller,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(
-              hintText: 'Task description',
-              border: InputBorder.none,
-            ),
-            minLines: 1,
-            maxLines: _focusNode.hasFocus ? 4 : 1,
-            style: TextStyle(
-              color: widget.task.done ? Colors.grey : Theme.of(context).textTheme.body1.color,
-              decoration: widget.task.done ? TextDecoration.lineThrough : TextDecoration.none,
+        if (widget.task.done)
+          Flexible(
+            child: Text(
+              widget.task.description,
+              style: TextStyle(
+                color: Colors.grey,
+                decoration: TextDecoration.lineThrough,
+              ),
             ),
           ),
-        ),
+        if (!widget.task.done)
+          Flexible(
+            child: TextField(
+              focusNode: _focusNode,
+              controller: _controller,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(hintText: 'Task description', border: InputBorder.none),
+              minLines: 1,
+              maxLines: _focusNode.hasFocus ? 4 : 1,
+            ),
+          ),
       ],
     );
   }
