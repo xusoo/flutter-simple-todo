@@ -4,14 +4,15 @@ import 'package:provider/provider.dart';
 import 'package:simple_todo/models/task.dart';
 import 'package:simple_todo/models/tasks_model.dart';
 import 'package:simple_todo/utils/date_utils.dart';
+import 'package:simple_todo/widgets/date_selector.dart';
 
 class TaskListTile extends StatefulWidget {
   final Task task;
-  final VoidCallback onTrailingWidgetTap;
+  final Function(bool) onExpansionChanged;
   final VoidCallback onFocus;
   final bool widgetExpanded;
 
-  const TaskListTile({Key key, @required this.task, @required this.onTrailingWidgetTap, this.widgetExpanded = false, this.onFocus}) : super(key: key);
+  const TaskListTile({Key key, @required this.task, @required this.onExpansionChanged, this.widgetExpanded = false, this.onFocus}) : super(key: key);
 
   @override
   _TaskListTileState createState() => _TaskListTileState();
@@ -56,7 +57,20 @@ class _TaskListTileState extends State<TaskListTile> {
 
   void _onCheckboxChange(TasksModel model, bool value) {
     model.markTaskAsDone(widget.task, value);
-    _focusNode.unfocus();
+    _collapseWidget();
+  }
+
+  void _updateTaskDate(TasksModel model, DateTime date) {
+    model.updateTaskDueDate(widget.task, date);
+    _collapseWidget();
+  }
+
+  void _toggleWidget() {
+    widget.onExpansionChanged(!widget.widgetExpanded);
+  }
+
+  void _collapseWidget() {
+    widget.onExpansionChanged(false);
   }
 
   @override
@@ -71,6 +85,13 @@ class _TaskListTileState extends State<TaskListTile> {
           title: _buildTaskTitle(model),
           trailing: _buildTrailingWidget(),
         ),
+        if (widget.widgetExpanded)
+          DateSelector(
+            initialDate: widget.task.dueDate ?? DateTime.now().add(Duration(days: 1)),
+            onDateChanged: (date) {
+              _updateTaskDate(model, date);
+            },
+          )
       ],
     );
   }
@@ -121,7 +142,7 @@ class _TaskListTileState extends State<TaskListTile> {
         child: Icon(
           widget.widgetExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
         ),
-        onTap: widget.onTrailingWidgetTap,
+        onTap: _toggleWidget,
       );
     }
 
@@ -134,7 +155,7 @@ class _TaskListTileState extends State<TaskListTile> {
             style: _dateStyle(),
           ),
         ),
-        onTap: widget.onTrailingWidgetTap,
+        onTap: _toggleWidget,
       );
     }
 

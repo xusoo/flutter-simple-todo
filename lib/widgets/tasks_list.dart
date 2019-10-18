@@ -4,7 +4,6 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:simple_todo/models/task.dart';
 import 'package:simple_todo/models/tasks_model.dart';
-import 'package:simple_todo/widgets/date_selector.dart';
 import 'package:simple_todo/widgets/task_list_tile.dart';
 
 class TasksList extends StatefulWidget {
@@ -55,20 +54,13 @@ class TasksListState extends State<TasksList> {
     });
   }
 
-  void _expandRowWidget(int row) {
-    setState(() {
-      FocusScope.of(context).unfocus();
-      _expandedRow = _expandedRow == row ? null : row;
-    });
-  }
-
   void _collapseRowWidget() {
     setState(() => _expandedRow = null);
   }
 
-  void _updateTaskDate(TasksModel model, Task task, DateTime date) {
-    model.updateTaskDueDate(task, date);
-    _collapseRowWidget();
+  void _onExpansionChanged(int row, bool state) {
+    FocusScope.of(context).unfocus();
+    setState(() => _expandedRow = state ? row : null);
   }
 
   @override
@@ -91,22 +83,11 @@ class TasksListState extends State<TasksList> {
 
           Task task = model.tasks[index];
 
-          return Column(
-            children: <Widget>[
-              TaskListTile(
-                task: task,
-                onTrailingWidgetTap: () => _expandRowWidget(index),
-                widgetExpanded: _expandedRow == index,
-                onFocus: () => _onRowFocus(index),
-              ),
-              if (_expandedRow == index)
-                DateSelector(
-                  initialDate: task.dueDate ?? DateTime.now().add(Duration(days: 1)),
-                  onDateChanged: (date) {
-                    _updateTaskDate(model, task, date);
-                  },
-                )
-            ],
+          return TaskListTile(
+            task: task,
+            onExpansionChanged: (expanded) => _onExpansionChanged(index, expanded),
+            widgetExpanded: _expandedRow == index,
+            onFocus: () => _onRowFocus(index),
           );
         },
       ),
