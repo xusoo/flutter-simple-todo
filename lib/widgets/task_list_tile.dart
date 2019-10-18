@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:simple_todo/models/task.dart';
 import 'package:simple_todo/models/tasks_model.dart';
 import 'package:simple_todo/utils/date_utils.dart';
+import 'package:simple_todo/utils/theme_utils.dart';
 import 'package:simple_todo/widgets/date_selector.dart';
 
 class TaskListTile extends StatefulWidget {
@@ -77,22 +78,28 @@ class _TaskListTileState extends State<TaskListTile> {
   Widget build(BuildContext context) {
     final model = Provider.of<TasksModel>(context);
 
-    return Column(
-      children: <Widget>[
-        ListTile(
-          contentPadding: const EdgeInsets.only(left: 16.0, right: 16.0),
-          leading: _buildCheckbox(model),
-          title: _buildTaskTitle(model),
-          trailing: _buildTrailingWidget(),
-        ),
-        if (widget.widgetExpanded)
-          DateSelector(
-            initialDate: widget.task.dueDate ?? DateTime.now().add(Duration(days: 1)),
-            onDateChanged: (date) {
-              _updateTaskDate(model, date);
-            },
-          )
-      ],
+    return Container(
+      child: Column(
+        children: [
+          ListTile(
+            contentPadding: const EdgeInsets.only(left: 16.0, right: 16.0),
+            leading: _buildCheckbox(model),
+            title: _buildTaskTitle(model),
+            trailing: _buildTrailingWidget(),
+          ),
+          if (widget.widgetExpanded)
+            DateSelector(
+              initialDate: widget.task.dueDate ?? DateTime.now().add(Duration(days: 1)),
+              onDateChanged: (date) {
+                _updateTaskDate(model, date);
+              },
+            )
+        ],
+      ),
+      decoration: BoxDecoration(
+        color: ThemeUtils.isDarkMode(context) ? Colors.grey.shade800 : Colors.white,
+        border: Border(bottom: BorderSide(color: ThemeUtils.isDarkMode(context) ? Colors.grey.shade700 : Colors.grey.shade200, width: 1)),
+      ),
     );
   }
 

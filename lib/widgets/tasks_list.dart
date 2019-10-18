@@ -74,10 +74,9 @@ class TasksListState extends State<TasksList> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: ReorderableList(
-        child: ListView.separated(
+        child: ListView.builder(
           itemCount: model.tasks.length + 1,
           itemBuilder: (context, index) => index < model.tasks.length ? _buildItem(index, model) : _buildNewTaskField(model),
-          separatorBuilder: (BuildContext context, int index) => _buildItemSeparator(),
         ),
         onReorder: (Key draggedItem, Key newPosition) => _onReorder(draggedItem, newPosition, model),
       ),
@@ -103,14 +102,11 @@ class TasksListState extends State<TasksList> {
               key: ValueKey(task),
               onDismissed: (direction) => _deleteTask(model, task),
               background: Container(color: Theme.of(context).canvasColor),
-              child: Container(
-                color: _rowColor(),
-                child: TaskListTile(
-                  task: task,
-                  onExpansionChanged: (expanded) => _onExpansionChanged(index, expanded),
-                  widgetExpanded: _expandedRow == index,
-                  onFocus: () => _onRowFocus(index),
-                ),
+              child: TaskListTile(
+                task: task,
+                onExpansionChanged: (expanded) => _onExpansionChanged(index, expanded),
+                widgetExpanded: _expandedRow == index,
+                onFocus: () => _onRowFocus(index),
               ),
             ),
           ),
@@ -119,22 +115,11 @@ class TasksListState extends State<TasksList> {
     );
   }
 
-  DecoratedBox _buildItemSeparator() {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: isDarkMode() ? Colors.grey.shade700 : Colors.grey.shade200, width: 1)),
-      ),
-      child: SizedBox(height: 1),
-    );
-  }
-
-  bool isDarkMode() => ThemeUtils.isDarkMode(context);
-
   Widget _buildNewTaskField(TasksModel model) {
     return Container(
       decoration: BoxDecoration(
-        boxShadow: [BoxShadow(blurRadius: 5, color: isDarkMode() ? Colors.grey.shade900 : Colors.grey, offset: Offset(0, 3), spreadRadius: -3)],
-        color: _rowColor(),
+        boxShadow: [BoxShadow(blurRadius: 5, color: ThemeUtils.isDarkMode(context) ? Colors.grey.shade900 : Colors.grey, offset: Offset(0, 3), spreadRadius: -3)],
+        color: ThemeUtils.isDarkMode(context) ? Colors.grey.shade800 : Colors.white,
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.only(left: 16.0, right: 16.0),
@@ -159,6 +144,4 @@ class TasksListState extends State<TasksList> {
       ),
     );
   }
-
-  Color _rowColor() => isDarkMode() ? Colors.grey.shade800 : Colors.white;
 }
