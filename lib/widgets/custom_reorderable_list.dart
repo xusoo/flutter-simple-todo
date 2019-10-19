@@ -1,14 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_reorderable_list/flutter_reorderable_list.dart';
 
 class CustomReorderableList extends StatelessWidget {
   final int itemCount;
   final Widget Function(BuildContext context, int index) itemBuilder;
+
+  static void _emptyCallback(p) => {};
+
+  final void Function(int position) onReorderStart;
   final bool Function(int oldPosition, int newPosition) onReorder;
 
   final Map<Key, int> keyIndices = new Map<Key, int>();
 
-  CustomReorderableList({@required this.itemCount, @required this.itemBuilder, @required this.onReorder});
+  CustomReorderableList({@required this.itemCount, @required this.itemBuilder, @required this.onReorder, this.onReorderStart = _emptyCallback});
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +37,9 @@ class CustomReorderableList extends StatelessWidget {
     return ReorderableItem(
       key: widget.key,
       childBuilder: (context, ReorderableItemState state) {
+        if (state == ReorderableItemState.dragProxy) {
+          Future.delayed(Duration.zero, () => onReorderStart(index));
+        }
         return DelayedReorderableListener(
           child: Opacity(
             opacity: state == ReorderableItemState.placeholder ? 0.0 : 1.0,

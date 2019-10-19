@@ -82,6 +82,7 @@ class TasksListState extends State<TasksList> {
         itemCount: model.tasks.length + 1,
         itemBuilder: (context, index) => index < model.tasks.length ? _buildItem(index, model) : _buildNewTaskField(model),
         onReorder: (int oldPosition, int newPosition) => _onReorder(oldPosition, newPosition, model),
+        onReorderStart: (position) => _collapseRowWidget(),
       ),
     );
   }
