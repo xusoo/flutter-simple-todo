@@ -1,11 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_reorderable_list/flutter_reorderable_list.dart';
 import 'package:provider/provider.dart';
 import 'package:simple_todo/models/task.dart';
 import 'package:simple_todo/models/tasks_model.dart';
 import 'package:simple_todo/utils/theme_utils.dart';
+import 'package:simple_todo/widgets/custom_reorderable_list.dart';
 import 'package:simple_todo/widgets/task_list_tile.dart';
 
 class TasksList extends StatefulWidget {
@@ -67,51 +67,37 @@ class TasksListState extends State<TasksList> {
     model.deleteTask(task);
   }
 
+  bool _onReorder(int oldPosition, int newPosition, TasksModel model) {
+    model.reorderTask(model.tasks[oldPosition], newPosition);
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     final model = Provider.of<TasksModel>(context);
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
-      child: ReorderableList(
-        child: ListView.builder(
-          itemCount: model.tasks.length + 1,
-          itemBuilder: (context, index) => index < model.tasks.length ? _buildItem(index, model) : _buildNewTaskField(model),
-        ),
-        onReorder: (Key draggedItem, Key newPosition) => _onReorder(draggedItem, newPosition, model),
+      child: CustomReorderableList(
+        itemCount: model.tasks.length + 1,
+        itemBuilder: (context, index) => index < model.tasks.length ? _buildItem(index, model) : _buildNewTaskField(model),
+        onReorder: (int oldPosition, int newPosition) => _onReorder(oldPosition, newPosition, model),
       ),
     );
   }
 
-  bool _onReorder(Key draggedItem, Key newPosition, TasksModel model) {
-    Task draggedTask = (draggedItem as ValueKey<Task>).value;
-    int position = model.tasks.indexOf((newPosition as ValueKey<Task>).value);
-    model.reorderTask(draggedTask, position);
-    return true;
-  }
-
   Widget _buildItem(int index, TasksModel model) {
     Task task = model.tasks[index];
-    return ReorderableItem(
+    return Dismissible(
       key: ValueKey(task),
-      childBuilder: (context, ReorderableItemState state) {
-        return DelayedReorderableListener(
-          child: Opacity(
-            opacity: state == ReorderableItemState.placeholder ? 0.0 : 1.0,
-            child: Dismissible(
-              key: ValueKey(task),
-              onDismissed: (direction) => _deleteTask(model, task),
-              background: Container(color: Theme.of(context).canvasColor),
-              child: TaskListTile(
-                task: task,
-                onExpansionChanged: (expanded) => _onExpansionChanged(index, expanded),
-                widgetExpanded: _expandedRow == index,
-                onFocus: () => _onRowFocus(index),
-              ),
-            ),
-          ),
-        );
-      },
+      onDismissed: (direction) => _deleteTask(model, task),
+      background: Container(color: Theme.of(context).canvasColor),
+      child: TaskListTile(
+        task: task,
+        onExpansionChanged: (expanded) => _onExpansionChanged(index, expanded),
+        widgetExpanded: _expandedRow == index,
+        onFocus: () => _onRowFocus(index),
+      ),
     );
   }
 
