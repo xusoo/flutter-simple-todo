@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 import 'package:simple_todo/models/task.dart';
 import 'package:simple_todo/models/tasks_model.dart';
@@ -22,6 +23,7 @@ class TaskListTile extends StatefulWidget {
 class _TaskListTileState extends State<TaskListTile> {
   FocusNode _focusNode;
   TextEditingController _controller;
+  bool _editing = false;
 
   @override
   void initState() {
@@ -34,6 +36,7 @@ class _TaskListTileState extends State<TaskListTile> {
         if (_focusNode.hasFocus) {
           widget.onFocus();
         } else {
+          _editing = false;
           _updateTask();
         }
       });
@@ -74,6 +77,13 @@ class _TaskListTileState extends State<TaskListTile> {
     widget.onExpansionChanged(false);
   }
 
+  void _startEditing() {
+    setState(() {
+      _editing = true;
+      _focusNode.requestFocus();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final model = Provider.of<TasksModel>(context);
@@ -84,7 +94,7 @@ class _TaskListTileState extends State<TaskListTile> {
           ListTile(
             contentPadding: const EdgeInsets.only(left: 16.0, right: 16.0),
             leading: _buildCheckbox(model),
-            title: _buildTaskTitle(model),
+            title: widget.task.done ? _buildStrikethroughTask() : _buildTextField(),
             trailing: _buildTrailingWidget(),
           ),
           if (widget.widgetExpanded)
@@ -111,30 +121,31 @@ class _TaskListTileState extends State<TaskListTile> {
     );
   }
 
-  Widget _buildTaskTitle(TasksModel model) {
-    return Row(
+  Widget _buildTextField() {
+    return IndexedStack(
+      index: _editing ? 0 : 1,
       children: <Widget>[
-        if (widget.task.done)
-          Flexible(
-            child: Text(
-              widget.task.description,
-              style: TextStyle(
-                color: Colors.grey,
-                decoration: TextDecoration.lineThrough,
-              ),
-            ),
-          ),
-        if (!widget.task.done)
-          Flexible(
-            child: TextField(
-              focusNode: _focusNode,
-              controller: _controller,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(hintText: 'Task description', border: InputBorder.none),
-              minLines: 1,
-              maxLines: _focusNode.hasFocus ? 4 : 1,
-            ),
-          ),
+        TextField(
+          focusNode: _focusNode,
+          controller: _controller,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(hintText: 'Remove task?', border: InputBorder.none),
+          minLines: 1,
+          maxLines: _focusNode.hasFocus ? 4 : 1,
+        ),
+        GestureDetector(
+          onTap: _startEditing,
+          behavior: HitTestBehavior.opaque,
+          child: TextFormField(enabled: false, controller: _controller),
+        )
+      ],
+    );
+  }
+
+  Row _buildStrikethroughTask() {
+    return Row(
+      children: [
+        Text(widget.task.description, style: TextStyle(color: Colors.grey, decoration: TextDecoration.lineThrough)),
       ],
     );
   }
