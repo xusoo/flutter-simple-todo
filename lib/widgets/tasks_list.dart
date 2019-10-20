@@ -60,7 +60,7 @@ class TasksListState extends State<TasksList> {
 
   void _onExpansionChanged(int row, bool state) {
     FocusScope.of(context).unfocus();
-    setState(() => _expandedRow = state ? row : null);
+    setState(() => _expandedRow = (state ? row : null));
   }
 
   void _deleteTask(TasksModel model, Task task) {

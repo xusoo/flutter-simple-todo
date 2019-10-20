@@ -20,16 +20,23 @@ class TaskListTile extends StatefulWidget {
   _TaskListTileState createState() => _TaskListTileState();
 }
 
-class _TaskListTileState extends State<TaskListTile> {
-  FocusNode _focusNode;
-  TextEditingController _controller;
+class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderStateMixin {
+  FocusNode _focusNode = FocusNode();
+  TextEditingController _textController;
+  AnimationController _animationController;
+  Animation<double> _rotationAnimation;
+  Animation<double> _expandAnimation;
+
   bool _editing = false;
+  bool _expandRequested = false;
 
   @override
   void initState() {
     super.initState();
-    _focusNode = FocusNode();
-    _controller = new TextEditingController(text: widget.task.description);
+    _textController = new TextEditingController(text: widget.task.description);
+    _animationController = AnimationController(vsync: this, duration: Duration(milliseconds: 200));
+    _rotationAnimation = _animationController.drive(Tween(begin: 0.0, end: 0.5));
+    _expandAnimation = _animationController.drive(CurveTween(curve: Curves.easeIn));
 
     _focusNode.addListener(() {
       setState(() {
@@ -46,16 +53,16 @@ class _TaskListTileState extends State<TaskListTile> {
   @override
   void dispose() {
     super.dispose();
-    _controller.dispose();
+    _textController.dispose();
     _focusNode.dispose();
   }
 
   void _updateTask() {
     final model = Provider.of<TasksModel>(context, listen: false);
-    if (_controller.text.isEmpty) {
+    if (_textController.text.isEmpty) {
       model.deleteTask(widget.task);
-    } else if (widget.task.description != _controller.text) {
-      model.updateTaskDescription(widget.task, _controller.text);
+    } else if (widget.task.description != _textController.text) {
+      model.updateTaskDescription(widget.task, _textController.text);
     }
   }
 
@@ -70,11 +77,29 @@ class _TaskListTileState extends State<TaskListTile> {
   }
 
   void _toggleWidget() {
-    widget.onExpansionChanged(!widget.widgetExpanded);
+    if (widget.widgetExpanded) {
+      _collapseWidget();
+    } else {
+      _expandWidget();
+    }
   }
 
   void _collapseWidget() {
-    widget.onExpansionChanged(false);
+    _animationController.reverse().then((value) {
+      Future.delayed(Duration.zero, () {
+        widget.onExpansionChanged(false);
+      });
+    });
+  }
+
+  void _expandWidget() {
+    setState(() => _expandRequested = true);
+    _animationController.forward().then((value) {
+      Future.delayed(Duration.zero, () {
+        widget.onExpansionChanged(true);
+        setState(() => _expandRequested = false);
+      });
+    });
   }
 
   void _startEditing() {
@@ -97,13 +122,16 @@ class _TaskListTileState extends State<TaskListTile> {
             title: widget.task.done ? _buildStrikethroughTask() : _buildTextField(),
             trailing: _buildTrailingWidget(),
           ),
-          if (widget.widgetExpanded)
-            DateSelector(
-              initialDate: widget.task.dueDate ?? DateTime.now().add(Duration(days: 1)),
-              onDateChanged: (date) {
-                _updateTaskDate(model, date);
-              },
-            )
+          if (_expandRequested || widget.widgetExpanded)
+            SizeTransition(
+              sizeFactor: _expandAnimation,
+              child: DateSelector(
+                initialDate: widget.task.dueDate ?? DateTime.now().add(Duration(days: 1)),
+                onDateChanged: (date) {
+                  _updateTaskDate(model, date);
+                },
+              ),
+            ),
         ],
       ),
       decoration: BoxDecoration(
@@ -127,7 +155,7 @@ class _TaskListTileState extends State<TaskListTile> {
       children: <Widget>[
         TextField(
           focusNode: _focusNode,
-          controller: _controller,
+          controller: _textController,
           textCapitalization: TextCapitalization.sentences,
           decoration: InputDecoration(hintText: 'Remove task?', border: InputBorder.none),
           minLines: 1,
@@ -136,7 +164,7 @@ class _TaskListTileState extends State<TaskListTile> {
         GestureDetector(
           onTap: _startEditing,
           behavior: HitTestBehavior.opaque,
-          child: TextFormField(enabled: false, controller: _controller),
+          child: TextFormField(enabled: false, controller: _textController),
         )
       ],
     );
@@ -155,10 +183,11 @@ class _TaskListTileState extends State<TaskListTile> {
       return null;
     }
 
-    if (_focusNode.hasFocus || widget.widgetExpanded) {
+    if (widget.widgetExpanded || _expandRequested) {
       return GestureDetector(
-        child: Icon(
-          widget.widgetExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+        child: RotationTransition(
+          child: const Icon(Icons.expand_more),
+          turns: _rotationAnimation,
         ),
         onTap: _toggleWidget,
       );
@@ -168,11 +197,15 @@ class _TaskListTileState extends State<TaskListTile> {
       return GestureDetector(
         child: Padding(
           padding: const EdgeInsets.only(left: 8.0),
-          child: Text(
-            DateUtils.friendlyFormatDate(widget.task.dueDate),
-            style: _dateStyle(),
-          ),
+          child: _buildDueDate(),
         ),
+        onTap: _toggleWidget,
+      );
+    }
+
+    if (_focusNode.hasFocus) {
+      return GestureDetector(
+        child: Icon(Icons.add_alarm),
         onTap: _toggleWidget,
       );
     }
@@ -180,8 +213,8 @@ class _TaskListTileState extends State<TaskListTile> {
     return null;
   }
 
-  TextStyle _dateStyle() {
-    var color, weight;
+  Text _buildDueDate() {
+    var color, weight, text = DateUtils.friendlyFormatDate(widget.task.dueDate);
 
     if (DateUtils.isToday(widget.task.dueDate)) {
       color = Theme.of(context).textTheme.title.color;
@@ -189,15 +222,19 @@ class _TaskListTileState extends State<TaskListTile> {
     } else if (DateUtils.daysFromNow(widget.task.dueDate) < 1) {
       color = Colors.red;
       weight = FontWeight.bold;
+      text = "Due";
     } else {
       color = Colors.grey;
       weight = FontWeight.normal;
     }
 
-    return TextStyle(
-      color: color,
-      fontWeight: weight,
-      fontSize: 14,
+    return Text(
+      text,
+      style: TextStyle(
+        color: color,
+        fontWeight: weight,
+        fontSize: 14,
+      ),
     );
   }
 }
