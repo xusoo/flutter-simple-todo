@@ -26,7 +26,6 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
   Animation<double> _moveAnimation, _expandAnimation, _elevationAnimation, _opacityAnimation, _maskOpacityAnimation;
   OverlayEntry _editingPopup;
 
-  bool _editing = false;
   bool _popupOpen = false;
 
   @override
@@ -46,7 +45,6 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
     _focusNode.addListener(() {
       setState(() {
         if (!_focusNode.hasFocus) {
-          _editing = false;
           _updateTask();
         }
       });
@@ -69,28 +67,20 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
     } else if (widget.task.description != fieldValue) {
       model.updateTaskDescription(widget.task, fieldValue);
     }
-    _collapseWidget();
+    _closePopup();
   }
 
   void _onCheckboxChange(TasksModel model, bool value) {
     model.markTaskAsDone(widget.task, value);
-    _collapseWidget();
+    _closePopup();
   }
 
   void _updateTaskDate(TasksModel model, DateTime date) {
     model.updateTaskDueDate(widget.task, date);
-    _collapseWidget();
+    _closePopup();
   }
 
-  void _toggleWidget() {
-    if (_popupOpen) {
-      _collapseWidget();
-    } else {
-      _expandWidget();
-    }
-  }
-
-  void _collapseWidget() {
+  void _closePopup() {
     if (!_popupOpen) {
       return;
     }
@@ -104,7 +94,7 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
     });
   }
 
-  void _expandWidget() {
+  void _openPopup() {
     if (_popupOpen) {
       return;
     }
@@ -124,31 +114,34 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
 
   void _startEditing() {
     setState(() {
-      _editing = true;
       _focusNode.requestFocus();
     });
   }
 
   OverlayEntry _buildEditPopup() {
     return OverlayEntry(builder: (BuildContext context) {
-      RenderBox renderBox = _globalKey.currentContext.findRenderObject();
-      var size = renderBox.size;
-      var offset = renderBox.localToGlobal(Offset.zero);
-
       final model = Provider.of<TasksModel>(context);
 
       return AnimatedBuilder(
         animation: _animationController,
         builder: (context, child) {
+          /* Size and position of the tile */
+          RenderBox renderBox = _globalKey.currentContext.findRenderObject();
+          var size = renderBox.size;
+          var offset = renderBox.localToGlobal(Offset.zero);
+
           return Stack(
             children: [
               /* Background mask */
-              FadeTransition(
-                opacity: _maskOpacityAnimation,
-                child: Column(
-                  children: <Widget>[
-                    Expanded(child: Container(color: Theme.of(context).textTheme.title.color)),
-                  ],
+              GestureDetector(
+                onTap: _closePopup,
+                child: FadeTransition(
+                  opacity: _maskOpacityAnimation,
+                  child: Column(
+                    children: <Widget>[
+                      Expanded(child: Container(color: Theme.of(context).textTheme.title.color)),
+                    ],
+                  ),
                 ),
               ),
               /* Popup */
@@ -170,10 +163,10 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
                         ListTile(
                           contentPadding: const EdgeInsets.only(left: 16.0, right: 16.0),
                           leading: _buildCheckbox(model),
-                          title: widget.task.done ? _buildStrikethroughTask() : _buildTextField(),
+                          title: widget.task.done ? _buildStrikethroughTask() : TextFormField(initialValue: _textController.text, enabled: false),
                           trailing: GestureDetector(
                             child: Icon(Icons.close),
-                            onTap: _collapseWidget,
+                            onTap: _closePopup,
                           ),
                         ),
                         /* Calendar widget */
@@ -211,7 +204,7 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
             child: ListTile(
               contentPadding: const EdgeInsets.only(left: 16.0, right: 16.0),
               leading: _buildCheckbox(model),
-              title: widget.task.done ? _buildStrikethroughTask() : _buildTextField(),
+              title: widget.task.done ? _buildStrikethroughTask() : _buildDescriptionField(),
               trailing: _buildTrailingWidget(),
             ),
           ),
@@ -232,9 +225,9 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildTextField() {
+  Widget _buildDescriptionField() {
     return IndexedStack(
-      index: _editing ? 0 : 1,
+      index: _focusNode.hasFocus ? 0 : 1,
       children: <Widget>[
         TextField(
           focusNode: _focusNode,
@@ -245,7 +238,7 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
         GestureDetector(
           onTap: _startEditing,
           behavior: HitTestBehavior.opaque,
-          child: TextFormField(
+          child: TextField(
             enabled: false,
             controller: _textController,
             decoration: InputDecoration(border: InputBorder.none),
@@ -284,7 +277,7 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
             child: _buildDueDate(),
           ),
         ),
-        onTap: _toggleWidget,
+        onTap: _openPopup,
       );
     }
 
@@ -294,7 +287,7 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
           Icons.calendar_today,
           size: 20,
         ),
-        onTap: _toggleWidget,
+        onTap: _openPopup,
       );
     }
 
