@@ -163,7 +163,9 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
                         ListTile(
                           contentPadding: const EdgeInsets.only(left: 16.0, right: 16.0),
                           leading: _buildCheckbox(model),
-                          title: widget.task.done ? _buildStrikethroughTask() : TextFormField(initialValue: _textController.text, enabled: false),
+                          title: widget.task.done
+                              ? _buildStrikethroughTask() //
+                              : TextFormField(initialValue: _textController.text, enabled: false, decoration: InputDecoration(border: InputBorder.none)),
                           trailing: GestureDetector(
                             child: Icon(Icons.close),
                             onTap: _closePopup,
@@ -173,7 +175,7 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
                         SizeTransition(
                           sizeFactor: _expandAnimation,
                           child: DateSelector(
-                            initialDate: widget.task.dueDate ?? DateTime.now().add(Duration(days: 1)),
+                            initialDate: widget.task.dueDate,
                             onDateChanged: (date) {
                               _updateTaskDate(model, date);
                             },

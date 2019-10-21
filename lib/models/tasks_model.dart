@@ -30,7 +30,7 @@ class TasksModel with ChangeNotifier {
   }
 
   void updateTaskDueDate(Task task, DateTime date) {
-    task.dueDate = DateUtils.truncate(date);
+    task.dueDate = date != null ? DateUtils.truncate(date) : null;
     notifyListeners();
   }
 
