@@ -21,22 +21,29 @@ class TaskListTile extends StatefulWidget {
 }
 
 class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderStateMixin {
+  GlobalKey _globalKey = GlobalKey();
   FocusNode _focusNode = FocusNode();
   TextEditingController _textController;
+
   AnimationController _animationController;
-  Animation<double> _rotationAnimation;
-  Animation<double> _expandAnimation;
+  Animation<double> _moveAnimation, _expandAnimation, _elevationAnimation, _opacityAnimation, _maskOpacityAnimation;
+  OverlayEntry _editingPopup;
 
   bool _editing = false;
-  bool _expandRequested = false;
 
   @override
   void initState() {
     super.initState();
     _textController = new TextEditingController(text: widget.task.description);
-    _animationController = AnimationController(vsync: this, duration: Duration(milliseconds: 200));
-    _rotationAnimation = _animationController.drive(Tween(begin: 0.0, end: 0.5));
-    _expandAnimation = _animationController.drive(CurveTween(curve: Curves.easeIn));
+    _animationController = AnimationController(vsync: this, duration: Duration(milliseconds: 350), reverseDuration: Duration(milliseconds: 500));
+
+    _maskOpacityAnimation = Tween(begin: 0.0, end: 0.2).animate(_animationController);
+    _moveAnimation = Tween(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: Interval(0.5, 1)));
+    _expandAnimation = Tween(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: Interval(0.75, 1)));
+    _opacityAnimation = Tween(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _animationController, curve: Interval(0, 0.5)));
+    _elevationAnimation = Tween(begin: 0.0, end: 5.0).animate(CurvedAnimation(parent: _animationController, curve: Interval(0, 0.75)));
+
+    _editingPopup = _buildEditPopup();
 
     _focusNode.addListener(() {
       setState(() {
@@ -55,15 +62,18 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
     super.dispose();
     _textController.dispose();
     _focusNode.dispose();
+    _animationController.dispose();
   }
 
   void _updateTask() {
     final model = Provider.of<TasksModel>(context, listen: false);
-    if (_textController.text.isEmpty) {
+    var fieldValue = _textController.text.trim();
+    if (fieldValue.isEmpty) {
       model.deleteTask(widget.task);
-    } else if (widget.task.description != _textController.text) {
-      model.updateTaskDescription(widget.task, _textController.text);
+    } else if (widget.task.description != fieldValue) {
+      model.updateTaskDescription(widget.task, fieldValue);
     }
+    _collapseWidget();
   }
 
   void _onCheckboxChange(TasksModel model, bool value) {
@@ -85,20 +95,99 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
   }
 
   void _collapseWidget() {
+    if (!widget.widgetExpanded) {
+      return;
+    }
     _animationController.reverse().then((value) {
       Future.delayed(Duration.zero, () {
         widget.onExpansionChanged(false);
+        _editingPopup.remove();
       });
     });
   }
 
   void _expandWidget() {
-    setState(() => _expandRequested = true);
+    if (widget.widgetExpanded) {
+      return;
+    }
+
+    _focusNode.unfocus();
+
+    Overlay.of(context).insert(_editingPopup);
+
     _animationController.forward().then((value) {
       Future.delayed(Duration.zero, () {
         widget.onExpansionChanged(true);
-        setState(() => _expandRequested = false);
       });
+    });
+  }
+
+  OverlayEntry _buildEditPopup() {
+    return OverlayEntry(builder: (BuildContext context) {
+      RenderBox renderBox = _globalKey.currentContext.findRenderObject();
+      var size = renderBox.size;
+      var offset = renderBox.localToGlobal(Offset.zero);
+
+      final model = Provider.of<TasksModel>(context);
+
+      return AnimatedBuilder(
+        animation: _animationController,
+        builder: (context, child) {
+          return Stack(
+            children: [
+              /* Background mask */
+              FadeTransition(
+                opacity: _maskOpacityAnimation,
+                child: Column(
+                  children: <Widget>[
+                    Expanded(child: Container(color: Theme.of(context).textTheme.title.color)),
+                  ],
+                ),
+              ),
+              /* Popup */
+              AnimatedPositioned(
+                left: offset.dx + (_moveAnimation.value * 10),
+                top: offset.dy - ((offset.dy - 150) * _moveAnimation.value),
+                width: size.width - (_moveAnimation.value * 20),
+                duration: Duration(milliseconds: 500),
+                curve: Curves.elasticOut,
+                child: FadeTransition(
+                  opacity: _opacityAnimation,
+                  child: Material(
+                    type: MaterialType.card,
+                    elevation: _elevationAnimation.value,
+                    borderRadius: BorderRadius.all(Radius.circular(5)),
+                    child: Column(
+                      children: <Widget>[
+                        /* Replica of the selected row */
+                        ListTile(
+                          contentPadding: const EdgeInsets.only(left: 16.0, right: 16.0),
+                          leading: _buildCheckbox(model),
+                          title: widget.task.done ? _buildStrikethroughTask() : _buildTextField(),
+                          trailing: GestureDetector(
+                            child: Icon(Icons.close),
+                            onTap: _collapseWidget,
+                          ),
+                        ),
+                        /* Calendar widget */
+                        SizeTransition(
+                          sizeFactor: _expandAnimation,
+                          child: DateSelector(
+                            initialDate: widget.task.dueDate ?? DateTime.now().add(Duration(days: 1)),
+                            onDateChanged: (date) {
+                              _updateTaskDate(model, date);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            ],
+          );
+        },
+      );
     });
   }
 
@@ -114,24 +203,18 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
     final model = Provider.of<TasksModel>(context);
 
     return Container(
+      key: _globalKey,
       child: Column(
         children: [
-          ListTile(
-            contentPadding: const EdgeInsets.only(left: 16.0, right: 16.0),
-            leading: _buildCheckbox(model),
-            title: widget.task.done ? _buildStrikethroughTask() : _buildTextField(),
-            trailing: _buildTrailingWidget(),
-          ),
-          if (_expandRequested || widget.widgetExpanded)
-            SizeTransition(
-              sizeFactor: _expandAnimation,
-              child: DateSelector(
-                initialDate: widget.task.dueDate ?? DateTime.now().add(Duration(days: 1)),
-                onDateChanged: (date) {
-                  _updateTaskDate(model, date);
-                },
-              ),
+          FadeTransition(
+            opacity: ReverseAnimation(_opacityAnimation),
+            child: ListTile(
+              contentPadding: const EdgeInsets.only(left: 16.0, right: 16.0),
+              leading: _buildCheckbox(model),
+              title: widget.task.done ? _buildStrikethroughTask() : _buildTextField(),
+              trailing: _buildTrailingWidget(),
             ),
+          ),
         ],
       ),
       decoration: BoxDecoration(
@@ -158,13 +241,15 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
           controller: _textController,
           textCapitalization: TextCapitalization.sentences,
           decoration: InputDecoration(hintText: 'Remove task?', border: InputBorder.none),
-          minLines: 1,
-          maxLines: _focusNode.hasFocus ? 4 : 1,
         ),
         GestureDetector(
           onTap: _startEditing,
           behavior: HitTestBehavior.opaque,
-          child: TextFormField(enabled: false, controller: _textController),
+          child: TextFormField(
+            enabled: false,
+            controller: _textController,
+            decoration: InputDecoration(border: InputBorder.none),
+          ),
         )
       ],
     );
@@ -173,7 +258,14 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
   Row _buildStrikethroughTask() {
     return Row(
       children: [
-        Text(widget.task.description, style: TextStyle(color: Colors.grey, decoration: TextDecoration.lineThrough)),
+        Expanded(
+          child: Text(
+            widget.task.description,
+            style: TextStyle(color: Colors.grey, decoration: TextDecoration.lineThrough),
+            overflow: TextOverflow.fade,
+            softWrap: false,
+          ),
+        ),
       ],
     );
   }
@@ -183,21 +275,14 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
       return null;
     }
 
-    if (widget.widgetExpanded || _expandRequested) {
-      return GestureDetector(
-        child: RotationTransition(
-          child: const Icon(Icons.expand_more),
-          turns: _rotationAnimation,
-        ),
-        onTap: _toggleWidget,
-      );
-    }
-
     if (widget.task.dueDate != null) {
       return GestureDetector(
         child: Padding(
           padding: const EdgeInsets.only(left: 8.0),
-          child: _buildDueDate(),
+          child: FadeTransition(
+            opacity: ReverseAnimation(_opacityAnimation),
+            child: _buildDueDate(),
+          ),
         ),
         onTap: _toggleWidget,
       );
