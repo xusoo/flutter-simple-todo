@@ -10,11 +10,8 @@ import 'package:simple_todo/widgets/date_selector.dart';
 
 class TaskListTile extends StatefulWidget {
   final Task task;
-  final Function(bool) onExpansionChanged;
-  final VoidCallback onFocus;
-  final bool widgetExpanded;
 
-  const TaskListTile({Key key, @required this.task, @required this.onExpansionChanged, this.widgetExpanded = false, this.onFocus}) : super(key: key);
+  const TaskListTile({Key key, @required this.task}) : super(key: key);
 
   @override
   _TaskListTileState createState() => _TaskListTileState();
@@ -30,6 +27,7 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
   OverlayEntry _editingPopup;
 
   bool _editing = false;
+  bool _popupOpen = false;
 
   @override
   void initState() {
@@ -47,9 +45,7 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
 
     _focusNode.addListener(() {
       setState(() {
-        if (_focusNode.hasFocus) {
-          widget.onFocus();
-        } else {
+        if (!_focusNode.hasFocus) {
           _editing = false;
           _updateTask();
         }
@@ -87,7 +83,7 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
   }
 
   void _toggleWidget() {
-    if (widget.widgetExpanded) {
+    if (_popupOpen) {
       _collapseWidget();
     } else {
       _expandWidget();
@@ -95,30 +91,41 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
   }
 
   void _collapseWidget() {
-    if (!widget.widgetExpanded) {
+    if (!_popupOpen) {
       return;
     }
     _animationController.reverse().then((value) {
       Future.delayed(Duration.zero, () {
-        widget.onExpansionChanged(false);
+        setState(() {
+          _popupOpen = false;
+        });
         _editingPopup.remove();
       });
     });
   }
 
   void _expandWidget() {
-    if (widget.widgetExpanded) {
+    if (_popupOpen) {
       return;
     }
 
-    _focusNode.unfocus();
+    FocusScope.of(context).unfocus();
 
     Overlay.of(context).insert(_editingPopup);
 
     _animationController.forward().then((value) {
       Future.delayed(Duration.zero, () {
-        widget.onExpansionChanged(true);
+        setState(() {
+          _popupOpen = true;
+        });
       });
+    });
+  }
+
+  void _startEditing() {
+    setState(() {
+      _editing = true;
+      _focusNode.requestFocus();
     });
   }
 
@@ -191,13 +198,6 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
     });
   }
 
-  void _startEditing() {
-    setState(() {
-      _editing = true;
-      _focusNode.requestFocus();
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final model = Provider.of<TasksModel>(context);
@@ -255,7 +255,7 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
     );
   }
 
-  Row _buildStrikethroughTask() {
+  Widget _buildStrikethroughTask() {
     return Row(
       children: [
         Expanded(
@@ -290,7 +290,10 @@ class _TaskListTileState extends State<TaskListTile> with SingleTickerProviderSt
 
     if (_focusNode.hasFocus) {
       return GestureDetector(
-        child: Icon(Icons.add_alarm),
+        child: Icon(
+          Icons.calendar_today,
+          size: 20,
+        ),
         onTap: _toggleWidget,
       );
     }

@@ -14,7 +14,6 @@ class TasksList extends StatefulWidget {
 }
 
 class TasksListState extends State<TasksList> {
-  int _expandedRow;
   bool _autofocusNewTaskField = false;
   FocusNode _newTaskFieldFocus = FocusNode();
   TextEditingController _newTaskFieldController = new TextEditingController();
@@ -24,10 +23,6 @@ class TasksListState extends State<TasksList> {
     super.initState();
     _newTaskFieldFocus.addListener(() {
       setState(() {});
-
-      if (_newTaskFieldFocus.hasFocus) {
-        _collapseRowWidget();
-      }
     });
   }
 
@@ -46,21 +41,6 @@ class TasksListState extends State<TasksList> {
     if (value.isNotEmpty) {
       model.addTask(new Task(description: value));
     }
-  }
-
-  void _onRowFocus(int row) {
-    setState(() {
-      _expandedRow = _expandedRow == row ? row : null;
-    });
-  }
-
-  void _collapseRowWidget() {
-    setState(() => _expandedRow = null);
-  }
-
-  void _onExpansionChanged(int row, bool state) {
-    FocusScope.of(context).unfocus();
-    setState(() => _expandedRow = (state ? row : null));
   }
 
   void _deleteTask(TasksModel model, Task task) {
@@ -82,7 +62,7 @@ class TasksListState extends State<TasksList> {
         itemCount: model.tasks.length + 1,
         itemBuilder: (context, index) => index < model.tasks.length ? _buildItem(index, model) : _buildNewTaskField(model),
         onReorder: (int oldPosition, int newPosition) => _onReorder(oldPosition, newPosition, model),
-        onReorderStart: (position) => _collapseRowWidget(),
+        onReorderStart: (position) => FocusScope.of(context).unfocus(),
       ),
     );
   }
@@ -93,12 +73,7 @@ class TasksListState extends State<TasksList> {
       key: ValueKey(task),
       onDismissed: (direction) => _deleteTask(model, task),
       background: Container(color: Theme.of(context).canvasColor),
-      child: TaskListTile(
-        task: task,
-        onExpansionChanged: (expanded) => _onExpansionChanged(index, expanded),
-        widgetExpanded: _expandedRow == index,
-        onFocus: () => _onRowFocus(index),
-      ),
+      child: TaskListTile(task: task),
     );
   }
 
